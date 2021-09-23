@@ -1,0 +1,60 @@
+package com.heima.producer;
+
+import com.rabbitmq.client.BuiltinExchangeType;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
+public class Producer_Routing {
+    public static void main(String[] args) throws IOException, TimeoutException {
+        //1创建连接工厂
+        ConnectionFactory connectionFactory = new ConnectionFactory();
+        //2设置参数
+        connectionFactory.setHost("47.96.178.51");
+        connectionFactory.setPort(5672);
+        connectionFactory.setVirtualHost("/testRabbit");
+        connectionFactory.setUsername("mona");
+        connectionFactory.setPassword("mona");
+        //3创建连接connection
+        Connection connection = connectionFactory.newConnection();
+        //4创建channel
+        Channel channel = connection.createChannel();
+
+
+        //5创建交换机
+        String exchangeName = "test_direct";
+        channel.exchangeDeclare(exchangeName, BuiltinExchangeType.DIRECT,true,false,false,null);
+
+        //6创建队列
+        String queneName1 = "test_direct_queue1";
+        String queneName2 = "test_direct_queue2";
+
+        channel.queueDeclare(queneName1,true,false,false,null);
+
+        channel.queueDeclare(queneName2,true,false,false,null);
+
+
+        //7绑定交换机和队列
+
+        //队列1绑定了error
+        channel.queueBind(queneName1,exchangeName,"error");
+        //队列1绑定了error,warn,info
+        channel.queueBind(queneName2,exchangeName,"info");
+        channel.queueBind(queneName2,exchangeName,"warn");
+        channel.queueBind(queneName2,exchangeName,"error");
+
+
+        //8发送消息
+        String mes = "这是日志消息,error级别";
+        channel.basicPublish(exchangeName,"error",false,null,mes.getBytes());
+
+        //9释放资源
+        channel.close();
+        connection.close();
+
+
+    }
+}
